@@ -31,7 +31,22 @@ INJECTION_PATTERNS = [
     (r"\bmark (this|it)?\s*as (safe|approved|harmless)\b",
      "Forsøg på at få en vurdering ændret til sikker (engelsk)"),
 ]
+INJECTION_PATTERNS += [
+    (r"\bnye\s+(instrukser|instruktioner|regler|ordrer)\b",
+     "Forsøg på at give AI'en nye instruktioner"),
+    (r"\b(systemtest|system test|debug ?mode|fejlfindingstilstand)\b",
+     "Forsøg på at slå AI'en over i en særlig tilstand"),
+    (r"\bignor[eé]r\w*\s+(alt|reglerne|instruktionerne|ovenst[åa]ende|det ovenst[åa]ende)\b",
+     "Forsøg på at få AI'en til at ignorere sine regler"),
+]
 _COMPILED = [(re.compile(p, re.IGNORECASE), why) for p, why in INJECTION_PATTERNS]
+
+# Mistænkeligt, men kan være uskyldigt: et menneske skal kigge (gul).
+SUSPICIOUS_PATTERNS = [
+    (r"\b(jeg er|i am|this is|her er)\s+(en\s+|an?\s+|din\s+)?(medarbejder|administrator|admin|udvikler|it-support|it-afdelingen|chef(en)?|employee|developer|ejer(en)?)\b",
+     "Afsenderen udgiver sig for at være medarbejder eller administrator"),
+]
+_SUSPICIOUS = [(re.compile(p, re.IGNORECASE), why) for p, why in SUSPICIOUS_PATTERNS]
 
 
 def _match_rules(text: str, prefix: str = "") -> list[str]:
@@ -50,6 +65,10 @@ def check_input(text: str, source: str = "bruger") -> CheckResult:
     clean = normalize(text)
     for why in _match_rules(clean):
         result.add(RED, f"{why} ({source})")
+
+    for rx, why in _SUSPICIOUS:
+        if rx.search(clean):
+            result.add(YELLOW, f"{why} ({source})")
 
     for decoded in decode_base64_parts(clean):
         hits = _match_rules(normalize(decoded), prefix="Kodet tekst (base64): ")

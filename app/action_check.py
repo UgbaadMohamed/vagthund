@@ -10,7 +10,7 @@ Ukendte værktøjer er ALTID forbudte.
 
 import json
 
-from .zones import GREEN, RED, YELLOW, CheckResult
+from vagthund.zones import GREEN, RED, YELLOW, CheckResult
 
 
 def _parse_args(raw) -> dict:

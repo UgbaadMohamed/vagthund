@@ -25,10 +25,10 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from . import upstream
 from .action_check import check_action
-from .input_check import check_input
-from .log import EventLog
-from .output_check import check_output
-from .zones import GREEN, RED, YELLOW, CheckResult, max_zone
+from vagthund.input_check import check_input
+from vagthund.log import EventLog
+from vagthund.output_check import check_output
+from vagthund.zones import GREEN, RED, YELLOW, CheckResult, max_zone
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -190,7 +190,7 @@ def create_app(config: dict | None = None) -> FastAPI:
 
     @app.get("/dashboard")
     def dashboard():
-        return FileResponse(BASE_DIR / "dashboard.html")
+        return FileResponse(BASE_DIR / "vagthund" / "dashboard.html")
 
     return app
 
