@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vagthund – dashboard</title>
+<style>
+  body { font-family: Calibri, "Segoe UI", Arial, sans-serif; margin: 0; background: #F4F7F9; color: #1A1A1A; }
+  header { background: #14213D; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-size: 22px; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 24px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat { background: #fff; border-radius: 10px; padding: 14px 16px; }
+  .stat .n { font-size: 30px; font-weight: 700; }
+  h2 { font-size: 18px; margin: 20px 0 8px; color: #14213D; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #E3E9EE; font-size: 14px; vertical-align: top; }
+  th { background: #EEF3F6; }
+  .z { padding: 2px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; }
+  .green { background: #E3F4EA; color: #1C6B3D; } .yellow { background: #FFF4CC; color: #6B5000; } .red { background: #FDE2E1; color: #8E1D16; }
+  button { border: 1px solid #1F7A8C; background: #fff; color: #1F7A8C; border-radius: 6px; padding: 4px 10px; cursor: pointer; margin-right: 4px; }
+  button.ok { background: #1F7A8C; color: #fff; }
+  .muted { color: #5A6B7B; font-size: 13px; }
+</style>
+</head>
+<body>
+<header><h1>Vagthund</h1><span class="muted" style="color:#BFDCE2" id="info"></span></header>
+<main>
+  <div class="stats">
+    <div class="stat"><div class="muted">Røde hændelser</div><div class="n" id="n-red" style="color:#D93025">0</div></div>
+    <div class="stat"><div class="muted">Gule hændelser</div><div class="n" id="n-yellow" style="color:#B58900">0</div></div>
+    <div class="stat"><div class="muted">Afventer godkendelse</div><div class="n" id="n-pending" style="color:#1F7A8C">0</div></div>
+  </div>
+
+  <h2>Godkendelsesliste</h2>
+  <p class="muted">Handlinger, chatbotten ikke måtte udføre selv. Vagthunden udfører dem ikke. En medarbejder gør det manuelt, hvis de godkendes.</p>
+  <table><thead><tr><th>#</th><th>Tid</th><th>Handling</th><th>Begrundelse</th><th>Status</th></tr></thead><tbody id="approvals"></tbody></table>
+
+  <h2>Hændelser</h2>
+  <table><thead><tr><th>Tid</th><th>Lag</th><th>Zone</th><th>Hvad skete der</th><th>Begrundelse</th></tr></thead><tbody id="events"></tbody></table>
+</main>
+<script>
+const zoneName = { green: "Grøn", yellow: "Gul", red: "Rød" };
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function time(t) { try { return new Date(t).toLocaleString("da-DK"); } catch (e) { return t; } }
+
+async function decide(id, beslutning) {
+  await fetch("/approve/" + id, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ beslutning }) });
+  load();
+}
+
+async function load() {
+  const [events, approvals, health] = await Promise.all([
+    fetch("/events").then(r => r.json()),
+    fetch("/approvals").then(r => r.json()),
+    fetch("/health").then(r => r.json()),
+  ]);
+  document.getElementById("info").textContent = (health.virksomhed || "") + " · tilstand: " + health.tilstand;
+  document.getElementById("n-red").textContent = events.filter(e => e.zone === "red").length;
+  document.getElementById("n-yellow").textContent = events.filter(e => e.zone === "yellow").length;
+  document.getElementById("n-pending").textContent = approvals.filter(a => a.status === "afventer").length;
+
+  document.getElementById("approvals").innerHTML = approvals.length ? approvals.map(a => `
+    <tr><td>${a.id}</td><td>${time(a.time)}</td><td>${esc(a.tool)}</td><td>${a.reasons.map(esc).join("<br>")}</td>
+    <td>${a.status === "afventer"
+      ? `<button class="ok" onclick="decide(${a.id},'godkendt')">Godkend</button><button onclick="decide(${a.id},'afvist')">Afvis</button>`
+      : esc(a.status)}</td></tr>`).join("") : `<tr><td colspan="5" class="muted">Ingen sager.</td></tr>`;
+
+  document.getElementById("events").innerHTML = events.length ? events.map(e => `
+    <tr><td>${time(e.time)}</td><td>${esc(e.layer)}</td><td><span class="z ${e.zone}">${zoneName[e.zone] || e.zone}</span></td>
+    <td>${esc(e.action_taken)}</td><td>${e.reasons.map(esc).join("<br>")}</td></tr>`).join("") : `<tr><td colspan="5" class="muted">Ingen hændelser endnu.</td></tr>`;
+}
+load();
+setInterval(load, 5000);
+</script>
+</body>
+</html>

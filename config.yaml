@@ -1,0 +1,47 @@
+# Konfiguration for én virksomhed.
+# Kopiér filen og tilpas den til hver ny virksomhed.
+
+virksomhed: Eksempel ApS
+
+# overvaag = log kun, bloker ikke (brug de første uger for at finde falske alarmer)
+# bloker   = bloker røde hændelser og send gule handlinger til godkendelse
+tilstand: bloker
+
+ai_model:
+  # mock   = falsk AI-model til test (ingen nøgle eller internet nødvendig)
+  # openai = send videre til en OpenAI-kompatibel adresse
+  tilstand: mock
+  adresse: https://api.openai.com/v1
+  api_noegle_miljoevariabel: OPENAI_API_KEY   # nøglen ligger i en miljøvariabel, aldrig her
+  timeout_sekunder: 30
+
+# Hemmelig kode, som virksomheden lægger ind i chatbottens instruktioner.
+# Står den nogensinde i et svar, har nogen fået AI'en til at afsløre sine instruktioner.
+canary: CANARY-7f3a-eksempel
+
+# Rettighedskort: hvad må chatbotten gøre? Ukendte handlinger er altid forbudte.
+rettigheder:
+  slaa_ordre_op:
+    regel: tilladt
+  refunder:
+    regel: tilladt
+    felt: belob
+    kraever_godkendelse_over: 500
+  send_mail:
+    regel: tilladt
+    mail_felt: til
+    kun_domaener: [eksempel.dk]
+  slet_kunde:
+    regel: forbudt
+
+# Virksomhedens egne fortrolige ord (kundenavne, projekter osv.)
+foelsomme_ord:
+  - Projekt Nordlys
+  - intern prisliste
+
+max_emails_i_svar: 2
+
+standardsvar_blokeret: "Det kan jeg desværre ikke hjælpe med."
+standardsvar_godkendelse: "Din anmodning er sendt til en medarbejder, som vender tilbage."
+
+log_fil: vagthund.db
